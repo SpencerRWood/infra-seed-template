@@ -1,0 +1,44 @@
+name: Deploy (Placeholder)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  packages: write   # needed for GHCR push
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set BUILD_ID
+        run: echo "BUILD_ID=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Compute lowercase repo (GHCR requires lowercase)
+        run: echo "REPO_LC=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ env.REPO_LC }}:${{ env.BUILD_ID }}
+            ghcr.io/${{ env.REPO_LC }}:latest
+
+      - name: Deploy (noop for now)
+        run: |
+          echo "Pretend deploy step here..."
+          echo "Image: ghcr.io/${{ env.REPO_LC }}:${{ env.BUILD_ID }}"
